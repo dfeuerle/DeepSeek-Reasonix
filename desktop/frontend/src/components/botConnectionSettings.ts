@@ -2,8 +2,9 @@ import { asArray } from "../lib/array";
 import type { useT } from "../lib/i18n";
 import type { BotAccessView, BotConnectionDiagnostic, BotConnectionView, BotSettingsView } from "../lib/types";
 
-export type BotInstallTarget = "qq" | "feishu" | "lark" | "weixin" | "dingtalk";
-export type BotOfficialInstallTarget = Exclude<BotInstallTarget, "qq">;
+export type BotInstallTarget = "qq" | "feishu" | "lark" | "weixin" | "dingtalk" | "telegram";
+export type BotOfficialInstallTarget = Exclude<BotInstallTarget, "qq" | "telegram">;
+export type BotChannelInstallTarget = BotInstallTarget;
 
 export function diagnosticMessage(diag?: BotConnectionDiagnostic | string): string {
   if (typeof diag === "string") return diag;
@@ -21,6 +22,7 @@ export function botTargetLabel(target: BotInstallTarget, t: ReturnType<typeof us
     case "lark": return "Lark";
     case "weixin": return t("settings.botWeixin");
     case "dingtalk": return t("settings.botDingtalk");
+    case "telegram": return "Telegram";
     default: return t("settings.botFeishu");
   }
 }
@@ -31,6 +33,7 @@ export function botTargetHint(target: BotInstallTarget, t: ReturnType<typeof use
     case "lark": return t("settings.botInstallLarkHint");
     case "weixin": return t("settings.botInstallWeixinHint");
     case "dingtalk": return t("settings.botInstallDingtalkHint");
+    case "telegram": return "Telegram Bot";
     default: return t("settings.botInstallFeishuHint");
   }
 }
@@ -54,9 +57,10 @@ export function botAccessReady(access: BotAccessView): boolean {
   return botAccessEntryCount(access) > 0;
 }
 
-export function botInstallTargetMatchesConnection(target: BotOfficialInstallTarget, connection: BotConnectionView): boolean {
+export function botInstallTargetMatchesConnection(target: BotInstallTarget, connection: BotConnectionView): boolean {
   if (target === "weixin") return connection.provider === "weixin";
   if (target === "dingtalk") return connection.provider === "dingtalk";
+  if ((target as string) === "telegram") return connection.provider === "telegram";
   if (target === "lark") return connection.provider === "feishu" && connection.domain === "lark";
   return connection.provider === "feishu" && connection.domain !== "lark";
 }
@@ -65,6 +69,7 @@ export function botInstallTargetForConnection(connection: BotConnectionView): Bo
   if (connection.provider === "weixin") return "weixin";
   if (connection.provider === "dingtalk") return "dingtalk";
   if (connection.provider === "feishu" && connection.domain === "lark") return "lark";
+  if (connection.provider === "telegram") return "telegram";
   if (connection.provider === "qq") return "qq";
   return "feishu";
 }
@@ -86,6 +91,7 @@ export function botConnectionLabel(connection: BotConnectionView, t: ReturnType<
   if (connection.domain === "lark") return "Lark";
   if (connection.provider === "weixin") return t("settings.botWeixin");
   if (connection.provider === "dingtalk") return t("settings.botDingtalk");
+  if (connection.provider === "telegram") return "Telegram";
   if (connection.provider === "qq") return "QQ";
   return t("settings.botFeishu");
 }

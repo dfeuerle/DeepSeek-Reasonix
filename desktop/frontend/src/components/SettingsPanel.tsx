@@ -2,7 +2,7 @@ import { lazy, memo, Suspense, startTransition, useCallback, useDeferredValue, u
 import { ArrowRight, BrainCircuit, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clipboard, ExternalLink, KeyRound, Languages, ListChecks, Loader2, Monitor, MoreHorizontal, PanelBottom, Play, Power, QrCode, RefreshCw, Send, ShieldCheck, SlidersHorizontal, Trash2, Volume2 } from "lucide-react";
 import { asArray } from "../lib/array";
 import { CHANNEL_ICONS } from "./channelIcons";
-import { botAccessEntryCount, botAccessReady, botConnectionCredentialSummary, botConnectionLabel, botConnectionScopeLabel, botConnectionSecretEnv, botConnectionSecretPatch, botInstallTargetForConnection, botInstallTargetMatchesConnection, botTargetHint, botTargetLabel, diagnosticMessage, diagnosticReportDetail, firstConnectionRemote, formatInstallTimeLeft, formatInstallUserCode, qqBotAdded, type BotInstallTarget, type BotOfficialInstallTarget } from "./botConnectionSettings";
+import { botAccessEntryCount, botAccessReady, botConnectionCredentialSummary, botConnectionLabel, botConnectionScopeLabel, botConnectionSecretEnv, botConnectionSecretPatch, botInstallTargetForConnection, botInstallTargetMatchesConnection, botTargetHint, botTargetLabel, diagnosticMessage, diagnosticReportDetail, firstConnectionRemote, formatInstallTimeLeft, formatInstallUserCode, qqBotAdded, type BotInstallTarget } from "./botConnectionSettings";
 import { useDeferredClose } from "../lib/useMountTransition";
 import { app, COMPACT_RATIO_MAX_PERCENT, COMPACT_RATIO_MIN_PERCENT, openExternal } from "../lib/bridge";
 import { normalizeLangPref, useI18n, useT, type DictKey, type LangPref } from "../lib/i18n";
@@ -1116,6 +1116,7 @@ function defaultBotSettings(): BotSettingsView {
       feishu: [],
       weixin: [],
       dingtalk: [],
+      telegram: [],
     },
     control: {
       enabled: false,
@@ -1146,7 +1147,7 @@ function defaultBotSettings(): BotSettingsView {
       dingtalkUsers: [],
       dingtalkApprovers: [],
       dingtalkAdmins: [],
-      dingtalkGroups: [],
+      dingtalkGroups: [], telegramUsers: [], telegramApprovers: [], telegramAdmins: [], telegramGroups: [],
     },
     qq: { enabled: false, appId: "", appSecretEnv: "QQ_BOT_APP_SECRET", secretSet: false, sandbox: false, model: "", toolApprovalMode: "ask", workspaceRoot: "", access: defaultBotAccess() },
     feishu: {
@@ -1166,6 +1167,16 @@ function defaultBotSettings(): BotSettingsView {
       tokenEnv: "WEIXIN_BOT_TOKEN",
       tokenSet: false,
       apiBase: "https://ilinkai.weixin.qq.com",
+    },
+    telegram: {
+      enabled: false,
+      botToken: "",
+      tokenSet: false,
+      debug: false,
+      model: "",
+      toolApprovalMode: "ask",
+      workspaceRoot: "",
+      access: { enabled: true, allowAll: true, pairingEnabled: false, users: [], approvers: [], admins: [], groups: [] },
     },
     dingtalk: {
       enabled: false,
@@ -1230,6 +1241,7 @@ function normalizeBotSettings(bot: BotSettingsView | null | undefined): BotSetti
       feishu: asArray(selfUserIds.feishu),
       weixin: asArray(selfUserIds.weixin),
       dingtalk: asArray(selfUserIds.dingtalk),
+      telegram: asArray(selfUserIds.telegram),
     },
     control: {
       enabled: Boolean(control.enabled),
@@ -1277,6 +1289,12 @@ function normalizeBotSettings(bot: BotSettingsView | null | undefined): BotSetti
       ...bot?.dingtalk,
       toolApprovalMode: normalizeBotToolApprovalMode(bot?.dingtalk?.toolApprovalMode),
       access: normalizeBotAccess(bot?.dingtalk?.access, fallback.dingtalk.access),
+    },
+    telegram: {
+      ...fallback.telegram,
+      ...bot?.telegram,
+      toolApprovalMode: normalizeBotToolApprovalMode(bot?.telegram?.toolApprovalMode),
+      access: normalizeBotAccess(bot?.telegram?.access, fallback.telegram.access),
     },
     connections: asArray(bot?.connections).map(normalizeBotConnection),
   };
@@ -2125,12 +2143,13 @@ type BotInstallState = {
   timeLeft: number;
   message: string;
 };
-const BOT_INSTALL_TARGETS: BotInstallTarget[] = ["qq", "feishu", "lark", "weixin", "dingtalk"];
+const BOT_INSTALL_TARGETS: BotInstallTarget[] = ["qq", "feishu", "lark", "weixin", "dingtalk", "telegram"];
 const BOT_INSTALL_DEFAULT_TIMEOUT_SECONDS = 300;
 const BOT_INSTALL_MIN_POLL_SECONDS = 3;
 const DEFAULT_QQ_SECRET_ENV = "QQ_BOT_APP_SECRET";
 const QQ_CONNECTION_ID = "__qq_bot__";
 const DINGTALK_CONNECTION_ID = "__dingtalk_bot__";
+const TELEGRAM_CONNECTION_ID = "__telegram_bot__";
 const BOT_PLATFORM_KEYS = ["qq", "feishu", "weixin", "dingtalk"] as const;
 type BotPlatformKey = typeof BOT_PLATFORM_KEYS[number];
 const BOT_ALLOWLIST_ROLES = ["Users", "Groups", "Approvers", "Admins"] as const;
@@ -2175,6 +2194,8 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
   const [connectionSecrets, setConnectionSecrets] = useState<Record<string, string>>({});
   const [accessText, setAccessText] = useState<Record<string, string>>({});
   const [qqSecretValue, setQQSecretValue] = useState("");
+  const [telegramTokenValue, setTelegramTokenValue] = useState("");
+  const telegramTokenTextRef = useRef("");
   const [dingtalkSecretValue, setDingtalkSecretValue] = useState("");
   const [dingtalkTesting, setDingtalkTesting] = useState(false);
   const [runtimePlatforms, setRuntimePlatforms] = useState<Record<string, string>>({});
@@ -2327,6 +2348,14 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
     updateDingtalk({ access: normalizeBotAccess({ ...draft.dingtalk.access, ...patch }) });
   const persistDingtalkAccess = (patch: Partial<BotAccessView>) =>
     persistDingtalk({ access: normalizeBotAccess({ ...draft.dingtalk.access, ...patch }) });
+  const updateTelegram = (patch: Partial<BotSettingsView["telegram"]>) =>
+    setDraft((prev) => ({ ...prev, telegram: { ...prev.telegram, ...patch } }));
+  const persistTelegram = (patch: Partial<BotSettingsView["telegram"]>) =>
+    persistBotDraft({ ...draft, telegram: { ...draft.telegram, ...patch } });
+  const updateTelegramAccess = (patch: Partial<BotAccessView>) =>
+    updateTelegram({ access: normalizeBotAccess({ ...draft.telegram.access, ...patch }) });
+  const persistTelegramAccess = (patch: Partial<BotAccessView>) =>
+    persistTelegram({ access: normalizeBotAccess({ ...draft.telegram.access, ...patch }) });
   const updateConnectionAccess = (id: string, patch: Partial<BotAccessView>) =>
     setConnections((items) => items.map((item) => item.id === id ? { ...item, access: normalizeBotAccess({ ...item.access, ...patch }) } : item));
   const persistConnectionAccess = (connection: BotConnectionView, patch: Partial<BotAccessView>) =>
@@ -2360,6 +2389,7 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
   const installQrIsImage = installQrURL.startsWith("data:image/");
   const isQQInstallTarget = installTarget === "qq";
   const isDingtalkInstallTarget = installTarget === "dingtalk";
+  const isTelegramInstallTarget = installTarget === "telegram";
   const selectedInstallLabel = botTargetLabel(installTarget, t);
   const installUserCode = install.result?.userCode && installTarget !== "weixin" ? formatInstallUserCode(install.result.userCode) : "";
   const qqSecretEnv = draft.qq.appSecretEnv.trim() || DEFAULT_QQ_SECRET_ENV;
@@ -2375,12 +2405,16 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
   // 保存按钮仅在用户输入了新的密钥后才可点；已保存过密钥但没有新输入时置灰。
   const dingtalkCanSaveAndEnable = Boolean(draft.dingtalk.clientId.trim() && dingtalkSecretEnv && dingtalkSecretValue.trim());
   const dingtalkOnline = runtimePlatforms["dingtalk"] === "running" || runtimePlatforms["dingtalk"] === "degraded";
+  
+  const telegramConfigured = draft.telegram.enabled && draft.telegram.botToken.trim() && draft.telegram.tokenSet;
+  const telegramOnline = runtimePlatforms["telegram"] === "running" || runtimePlatforms["telegram"] === "degraded";
+  const telegramAdded = draft.telegram.enabled || draft.telegram.tokenSet || draft.telegram.botToken.trim();
   const connectionItems: BotConnectionListItem[] = [
     ...(qqAdded ? [{ kind: "qq" as const }] : []),
     ...draft.connections.map((connection) => ({ kind: "connection" as const, connection })),
   ];
   const selectedInstallConnection = isQQInstallTarget || isDingtalkInstallTarget ? undefined : draft.connections.find((connection) => botInstallTargetMatchesConnection(installTarget, connection));
-  const selectedChannelConfigured = isQQInstallTarget ? qqAdded : isDingtalkInstallTarget ? dingtalkConfigured : Boolean(selectedInstallConnection);
+  const selectedChannelConfigured = isQQInstallTarget ? qqAdded : isDingtalkInstallTarget ? dingtalkConfigured : isTelegramInstallTarget ? telegramConfigured : Boolean(selectedInstallConnection);
   const routeConnectionOptions = [
     ...(qqAdded ? [{ id: "qq", label: "QQ" }] : []),
     ...draft.connections.map((connection) => ({
@@ -2417,7 +2451,7 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
     }
     installPollTimerRef.current = window.setTimeout(() => void pollInstall(attempt), Math.max(interval || BOT_INSTALL_MIN_POLL_SECONDS, BOT_INSTALL_MIN_POLL_SECONDS) * 1000);
   }
-  const startInstall = async (target: BotOfficialInstallTarget) => {
+  const startInstall = async (target: BotInstallTarget) => {
     if (installRequestInFlightRef.current) return;
     const existing = draft.connections.find((connection) => botInstallTargetMatchesConnection(target, connection));
     if (existing) {
@@ -2508,6 +2542,15 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
         ];
         return { ...item, sessionMappings, updatedAt };
       }));
+    }
+  };
+  const testTelegramBot = async () => {
+    if (!telegramConfigured) return;
+    try {
+      const result = await app.TestTelegramBot();
+      setDiagnostics((prev) => ({ ...prev, [TELEGRAM_CONNECTION_ID]: result.message }));
+    } catch (e) {
+      setDiagnostics((prev) => ({ ...prev, [TELEGRAM_CONNECTION_ID]: String(e) }));
     }
   };
   const testDingtalkBot = async () => {
@@ -2613,6 +2656,22 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
     setDraft(nextDraft);
     setQQSecretValue("");
   };
+  const saveTelegramAndEnable = async () => {
+    const tokenInput = telegramTokenTextRef.current.trim();
+    if (!tokenInput) return;
+    try {
+      await app.SetBotTelegramToken(tokenInput);
+      const nextDraft = botDraftWithDerivedGatewayState({
+        ...draft,
+        telegram: { ...draft.telegram, botToken: tokenInput, tokenSet: true, enabled: true },
+      });
+      await app.SetBotSettings(nextDraft);
+      setDraft(nextDraft);
+      setTelegramTokenValue("");
+    } catch (e) {
+      console.error("Failed to save telegram token:", e);
+    }
+  };
   const saveDingtalkAndEnable = async () => {
     const env = draft.dingtalk.clientSecretEnv.trim() || "DINGTALK_CLIENT_SECRET";
     const secret = dingtalkSecretValue.trim();
@@ -2633,11 +2692,25 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
     setDraft(nextDraft);
     setDingtalkSecretValue("");
   };
+  const removeTelegramBot = async () => {
+    const nextDraft = botDraftWithDerivedGatewayState({
+      ...draft,
+      telegram: { enabled: false, botToken: "", tokenSet: false, debug: false, model: "", toolApprovalMode: "", workspaceRoot: "", access: defaultBotAccess() },
+    });
+    await apply(async () => {
+      await app.SetBotSettings(nextDraft);
+      if (draft.telegram.tokenSet) await app.ClearBotTelegramToken();
+    });
+    setDraft(nextDraft);
+    setTelegramTokenValue("");
+    setExpandedConnectionId("");
+  };
   const removeDingtalkBot = async () => {
     const env = draft.dingtalk.clientSecretEnv.trim() || "DINGTALK_CLIENT_SECRET";
     const nextDraft = botDraftWithDerivedGatewayState({
       ...draft,
       dingtalk: { enabled: false, clientId: "", clientSecretEnv: "DINGTALK_CLIENT_SECRET", secretSet: false, botName: "", requireMention: true, model: "", toolApprovalMode: "", workspaceRoot: "", access: defaultBotAccess() },
+    telegram: { enabled: false, botToken: "", tokenSet: false, debug: false, model: "", toolApprovalMode: "", workspaceRoot: "", access: defaultBotAccess() },
     });
     await apply(async () => {
       await app.SetBotSettings(nextDraft);
@@ -2660,8 +2733,9 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
     setExpandedConnectionId("");
   };
   const selectedQQ = isQQInstallTarget && qqAdded;
-  const selectedConnection = isQQInstallTarget || isDingtalkInstallTarget ? null : selectedInstallConnection ?? null;
+  const selectedConnection = isQQInstallTarget || isDingtalkInstallTarget || isTelegramInstallTarget ? null : selectedInstallConnection ?? null;
   const selectedDingtalk = isDingtalkInstallTarget && dingtalkConfigured;
+  const selectedTelegram = isTelegramInstallTarget && telegramConfigured;
   const selectedDiagnostic = selectedConnection ? diagnostics[selectedConnection.id] : undefined;
   const selectedDiagnosticDetail = diagnosticReportDetail(selectedDiagnostic);
   const selectedConnectionRemote = selectedConnection ? firstConnectionRemote(selectedConnection) : "";
@@ -2679,11 +2753,11 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
   const botChannelConnectionForTarget = (target: BotInstallTarget) =>
     target === "qq" || target === "dingtalk" ? null : draft.connections.find((connection) => botInstallTargetMatchesConnection(target, connection));
   const botChannelIsConfigured = (target: BotInstallTarget) =>
-    target === "qq" ? qqAdded : target === "dingtalk" ? dingtalkConfigured : Boolean(botChannelConnectionForTarget(target));
+    target === "qq" ? qqAdded : target === "dingtalk" ? dingtalkConfigured : target === "telegram" ? telegramAdded : Boolean(botChannelConnectionForTarget(target));
   const openBotChannel = (target: BotInstallTarget) => {
     setInstallTarget(target);
     const connection = botChannelConnectionForTarget(target);
-    setExpandedConnectionId(target === "qq" && qqAdded ? QQ_CONNECTION_ID : connection?.id || "");
+    setExpandedConnectionId(target === "qq" && qqAdded ? QQ_CONNECTION_ID : target === "telegram" && telegramAdded ? TELEGRAM_CONNECTION_ID : connection?.id || "");
   };
   const setSimpleAccessMode = (mode: "trusted" | "everyone") => {
     const patch = mode === "everyone"
@@ -3180,6 +3254,153 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
     </article>
   );
 
+  const telegramDetailCard = (
+    <article className="bot-detail-card" aria-labelledby="bot-detail-title">
+      <div className="bot-detail-card__head">
+        <div className="bot-detail-card__identity">
+          <div className="bot-detail-card__title" id="bot-detail-title">
+            Telegram Bot
+            <span className="badge badge--neutral">Telegram</span>
+            <span className={`badge ${telegramOnline ? "badge--project" : telegramConfigured ? "badge--feedback" : "badge--feedback"}`}>
+              {telegramOnline ? "Online" : telegramConfigured ? "Configured" : "Disconnected"}
+            </span>
+          </div>
+          <div className="bot-detail-card__desc">Settings are auto-saved</div>
+        </div>
+        <div className="bot-detail-card__actions">
+          <button type="button" className="btn btn--small" disabled={busy || !telegramConfigured} onClick={() => void testTelegramBot()}>
+            Test
+          </button>
+        </div>
+      </div>
+
+      <section className="bot-detail-section">
+        <div className="bot-detail-section__head">Connection Summary</div>
+        <div className="bot-detail-summary">
+          <div>
+            <span>Channel</span>
+            <strong>Telegram</strong>
+          </div>
+          <div>
+            <span>Token</span>
+            <code>{draft.telegram.tokenSet ? "********" : "-"}</code>
+          </div>
+          <div>
+            <span>Debug</span>
+            <strong>{draft.telegram.debug ? "On" : "Off"}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong>{telegramOnline ? "Online" : telegramConfigured ? "Configured" : "Disconnected"}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="bot-detail-section bot-detail-section--runtime-primary">
+        <SettingsField label="Enabled" hint="Enable this Telegram bot">
+          <ToggleSegment
+            value={draft.telegram.enabled}
+            disabled={busy}
+            onChange={(enabled) => {
+              updateTelegram({ enabled });
+              void persistTelegram({ enabled });
+            }}
+          />
+        </SettingsField>
+        <SettingsField label="Tool Approval" hint="How tool use is approved">
+          <div className="provider-add-segmented" role="group" aria-label="Tool Approval">
+            {["auto", "ask", "reject"].map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={normalizeBotToolApprovalMode(draft.telegram.toolApprovalMode, true) === mode ? "provider-add-segmented__item provider-add-segmented__item--active" : "provider-add-segmented__item"}
+                disabled={busy}
+                onClick={() => {
+                  updateTelegram({ toolApprovalMode: mode });
+                  void persistTelegram({ toolApprovalMode: mode });
+                }}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </SettingsField>
+      </section>
+
+      {renderBotAccessSection(TELEGRAM_CONNECTION_ID, draft.telegram.access, updateTelegramAccess, (patch) => void persistTelegramAccess(patch))}
+
+      <section className="bot-detail-section">
+        <div className="bot-detail-section__head">Runtime</div>
+        <SettingsField label="Workspace Root" hint="Working directory">
+          <input
+            className="mem-input"
+            value={draft.telegram.workspaceRoot}
+            disabled={busy}
+            placeholder="(empty = global)"
+            spellCheck={false}
+            onChange={(event) => updateTelegram({ workspaceRoot: event.target.value })}
+            onBlur={(event) => void persistTelegram({ workspaceRoot: event.currentTarget.value })}
+          />
+        </SettingsField>
+        <SettingsField label="Debug" hint="Debug logging for Telegram">
+          <ToggleSegment
+            value={draft.telegram.debug}
+            disabled={busy}
+            onLabel="On"
+            offLabel="Off"
+            onChange={(debug) => {
+              updateTelegram({ debug });
+              void persistTelegram({ debug });
+            }}
+          />
+        </SettingsField>
+      </section>
+
+      <section className="bot-detail-section">
+        <div className="bot-detail-section__head">Credentials</div>
+        <div className="bot-credential-stack">
+          <div className="bot-credential-line">
+            <span>Bot Token</span>
+            <strong>{draft.telegram.tokenSet ? "Saved" : "Missing"}</strong>
+          </div>
+          <div className="bot-secret-row">
+            <input
+              className="mem-input"
+              type="password"
+              placeholder="Enter Telegram Bot Token"
+              value={telegramTokenValue}
+              spellCheck={false}
+              disabled={busy}
+              onChange={(e) => {
+                setTelegramTokenValue(e.target.value);
+                telegramTokenTextRef.current = e.target.value;
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn--primary btn--small bot-secret-row__button"
+              disabled={busy || !telegramTokenTextRef.current.trim()}
+              onClick={() => void saveTelegramAndEnable()}
+            >
+              Connect
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="bot-detail-card__remove">
+        <InlineConfirmButton
+          label="Remove"
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+          disabled={busy}
+          danger
+          onConfirm={() => void removeTelegramBot()}
+        />
+      </section>
+    </article>
+  );
+
   const connectionDetailCard = selectedConnection ? (
     <article className="bot-detail-card" aria-labelledby="bot-detail-title">
       <div className="bot-detail-card__head">
@@ -3600,6 +3821,8 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
             qqDetailCard
           ) : selectedDingtalk ? (
             dingtalkDetailCard
+          ) : selectedTelegram ? (
+            telegramDetailCard
           ) : selectedConnection ? (
             connectionDetailCard
           ) : (
@@ -4129,6 +4352,7 @@ function sanitizeBotDraft(draft: BotSettingsView): BotSettingsView {
       feishu: uniqueStrings(bot.selfUserIds.feishu.map((v) => v.trim())),
       weixin: uniqueStrings(bot.selfUserIds.weixin.map((v) => v.trim())),
       dingtalk: uniqueStrings(bot.selfUserIds.dingtalk.map((v) => v.trim())),
+      telegram: uniqueStrings(bot.selfUserIds.telegram.map((v) => v.trim())),
     },
     control: {
       enabled: bot.control.enabled,
@@ -4192,6 +4416,13 @@ function sanitizeBotDraft(draft: BotSettingsView): BotSettingsView {
       toolApprovalMode: normalizeBotToolApprovalMode(bot.dingtalk.toolApprovalMode),
       access: sanitizeBotAccess(bot.dingtalk.access),
     },
+    telegram: {
+      ...bot.telegram,
+      botToken: bot.telegram.botToken.trim(),
+      toolApprovalMode: normalizeBotToolApprovalMode(bot.telegram.toolApprovalMode),
+      workspaceRoot: bot.telegram.workspaceRoot.trim(),
+      access: sanitizeBotAccess(bot.telegram.access),
+    },
     connections: bot.connections.map((conn) => ({ ...normalizeBotConnection(conn), access: sanitizeBotAccess(conn.access) })).filter((conn) => conn.id && conn.provider),
   };
 }
@@ -4211,7 +4442,7 @@ function botDraftWithDerivedGatewayState(draft: BotSettingsView): BotSettingsVie
   const bot = sanitizeBotDraft(draft);
   return {
     ...bot,
-    enabled: bot.qq.enabled || bot.dingtalk.enabled || bot.connections.some((connection) => connection.enabled),
+    enabled: bot.qq.enabled || bot.dingtalk.enabled || bot.telegram.enabled || bot.connections.some((connection) => connection.enabled),
   };
 }
 
@@ -6575,6 +6806,7 @@ function botSelfUserTextValues(selfUserIds: BotSettingsView["selfUserIds"]): Rec
     feishu: selfUserIds.feishu.join("\n"),
     weixin: selfUserIds.weixin.join("\n"),
     dingtalk: selfUserIds.dingtalk.join("\n"),
+    telegram: selfUserIds.telegram.join("\n"),
   };
 }
 

@@ -772,6 +772,7 @@ type BotConfig struct {
 	Feishu             FeishuBotConfig       `toml:"feishu"`
 	Weixin             WeixinBotConfig       `toml:"weixin"`
 	Dingtalk           DingtalkBotConfig     `toml:"dingtalk"`
+	Telegram           TelegramBotConfig       `toml:"telegram"`
 	Routes             []BotRouteConfig      `toml:"routes"`
 	Connections        []BotConnectionConfig `toml:"connections"`
 	// DesktopWatchers persists /desktop watch subscriptions so god-view
@@ -794,7 +795,8 @@ type BotSelfUserIDs struct {
 	QQ       []string `toml:"qq"`
 	Feishu   []string `toml:"feishu"`
 	Weixin   []string `toml:"weixin"`
-	Dingtalk []string `toml:"dingtalk"`
+	Dingtalk []string
+	Telegram []string `toml:"telegram"`
 }
 
 type BotControlConfig struct {
@@ -835,6 +837,10 @@ type BotAllowlist struct {
 	DingtalkApprovers []string `toml:"dingtalk_approvers"`
 	DingtalkAdmins    []string `toml:"dingtalk_admins"`
 	DingtalkGroups    []string `toml:"dingtalk_groups"`
+	TelegramUsers     []string `toml:"telegram_users"`
+	TelegramApprovers []string `toml:"telegram_approvers"`
+	TelegramAdmins    []string `toml:"telegram_admins"`
+	TelegramGroups    []string `toml:"telegram_groups"`
 }
 
 type BotPairingConfig struct {
@@ -892,6 +898,16 @@ type WeixinBotConfig struct {
 }
 
 // DingtalkBotConfig 钉钉企业内部应用机器人（Stream 模式）配置。
+// TelegramBotConfig Telegram Bot 配置。
+// Token: BotToken felder (aus Telegram BotFather), optional Debug.
+type TelegramBotConfig struct {
+	Enabled  bool   `toml:"enabled"`
+	BotToken string `toml:"bot_token"`
+	TokenSet bool   `toml:"token_set"`
+	Debug    bool   `toml:"debug"`
+}
+
+
 type DingtalkBotConfig struct {
 	Enabled          bool            `toml:"enabled"`
 	ClientID         string          `toml:"client_id"`          // 钉钉应用 AppKey（ClientID）
@@ -1911,6 +1927,7 @@ func Default() *Config {
 			QQ:                 QQBotConfig{AppSecretEnv: "QQ_BOT_APP_SECRET"},
 			Feishu:             FeishuBotConfig{Domain: "feishu", AppSecretEnv: "FEISHU_BOT_APP_SECRET", Mode: "webhook", WebhookPort: 8080, RequireMention: true},
 			Dingtalk:           DingtalkBotConfig{RequireMention: true},
+			Telegram:           TelegramBotConfig{},
 			Weixin:             WeixinBotConfig{AccountID: "default", TokenEnv: "WEIXIN_BOT_TOKEN", APIBase: "https://ilinkai.weixin.qq.com"},
 		},
 		// New installs use DeepSeek's Anthropic-compatible Messages endpoint so

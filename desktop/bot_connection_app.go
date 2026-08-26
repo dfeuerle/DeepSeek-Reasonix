@@ -351,6 +351,64 @@ func dingtalkRuntimeConnectionID(connections []config.BotConnectionConfig) strin
 	return id
 }
 
+// TestTelegramBot sends a test message to the first known Telegram chat.
+func (a *App) TestTelegramBot() (BotConnectionDiagnostic, error) {
+	cfg, err := a.loadDesktopBotConfig()
+	if err != nil {
+		return botConnectionDiagnostic(nil, "telegram", "error", "config", "config_load_failed", err.Error(), true), nil
+	}
+	conn, connID, connOK := telegramRuntimeConnection(cfg.Bot.Connections)
+	token := strings.TrimSpace(cfg.Bot.Telegram.BotToken)
+	if token == "" && connOK {
+		token = os.Getenv(strings.TrimSpace(conn.Credential.TokenEnv))
+	}
+	if token == "" {
+		return botConnectionDiagnostic(nil, "telegram", "warning", "credential", "telegram_token_missing", "Telegram Bot Token not set.", false), nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	result, err := a.botRuntime.TestSendToAdapter(ctx, connID, "", "Reasonix bot test message: Telegram token and send path OK.")
+	if err != nil {
+		if strings.Contains(err.Error(), "requires a known chat") {
+			return botConnectionDiagnostic(nil, "telegram", "warning", "send", "telegram_test_send_no_chat", "No known Telegram chat yet: send a message to the bot first.", false), nil
+		}
+		return botConnectionDiagnostic(nil, "telegram", "error", "send", "telegram_test_send_failed", err.Error(), true), nil
+	}
+	diag := botConnectionDiagnostic(nil, "telegram", "ok", "send", "telegram_test_send_ok", "Test message sent, check Telegram chat.", false)
+	diag.MessageID = result.MessageID
+	return diag, nil
+}
+
+// telegramRuntimeConnection returns the first enabled Telegram connection and its runtime ID.
+func telegramRuntimeConnection(connections []config.BotConnectionConfig) (config.BotConnectionConfig, string, bool) {
+	for _, conn := range connections {
+		if !conn.Enabled || strings.TrimSpace(conn.Provider) != string(bot.PlatformTelegram) {
+			continue
+		}
+		return conn, botruntime.ConnectionRuntimeID(conn), true
+	}
+	return config.BotConnectionConfig{}, string(bot.PlatformTelegram), false
+}
+
+func telegramRuntimeConnectionID(connections []config.BotConnectionConfig) string {
+	_, id, _ := telegramRuntimeConnection(connections)
+	return id
+}
+
+// SetBotTelegramToken stores the Telegram bot token as a secret via the existing secret mechanism.
+func (a *App) SetBotTelegramToken(token string) (string, error) {
+	return a.SaveProviderKey("TELEGRAM_BOT_TOKEN", token)
+}
+
+// ClearBotTelegramToken removes the stored Telegram bot token.
+func (a *App) ClearBotTelegramToken() error {
+	return a.applyConfigOnly(func(cfg *config.Config) error {
+		cfg.Bot.Telegram.BotToken = ""
+		cfg.Bot.Telegram.TokenSet = false
+		return nil
+	})
+}
+
 func botConnectionDiagnostic(conn *config.BotConnectionConfig, id, status, phase, code, message string, reportable bool) BotConnectionDiagnostic {
 	id = strings.TrimSpace(id)
 	label := ""

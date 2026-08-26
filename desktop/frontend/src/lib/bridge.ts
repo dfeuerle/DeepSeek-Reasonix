@@ -553,6 +553,9 @@ export interface AppBindings extends SessionCatalogBindings, ProjectTreeOrganiza
   DiagnoseBotConnection(id: string): Promise<BotConnectionDiagnostic>;
   TestBotConnection(id: string, target?: string): Promise<BotConnectionDiagnostic>;
   TestDingtalkBot(): Promise<BotConnectionDiagnostic>;
+  TestTelegramBot(): Promise<BotConnectionDiagnostic>;
+  SetBotTelegramToken(token: string): Promise<void>;
+  ClearBotTelegramToken(): Promise<void>;
   SetCloseBehavior(mode: string): Promise<void>;
   SetDisplayMode(mode: string): Promise<void>;
   SetStatusBarStyle(style: string): Promise<void>;
@@ -1711,6 +1714,7 @@ function makeMockApp(): AppBindings {
         feishu: [],
         weixin: [],
         dingtalk: [],
+        telegram: [],
       },
       control: {
         enabled: false,
@@ -1741,7 +1745,7 @@ function makeMockApp(): AppBindings {
         dingtalkUsers: [],
         dingtalkApprovers: [],
         dingtalkAdmins: [],
-        dingtalkGroups: [],
+        dingtalkGroups: [], telegramUsers: [], telegramApprovers: [], telegramAdmins: [], telegramGroups: [],
       },
       qq: { enabled: false, appId: "", appSecretEnv: "QQ_BOT_APP_SECRET", secretSet: false, sandbox: false, model: "", toolApprovalMode: "ask", workspaceRoot: "", access: { enabled: true, allowAll: false, pairingEnabled: true, users: [], groups: [], approvers: [], admins: [] } },
       feishu: {
@@ -1762,6 +1766,16 @@ function makeMockApp(): AppBindings {
         tokenSet: false,
         apiBase: "https://ilinkai.weixin.qq.com",
       },
+    telegram: {
+      enabled: false,
+      botToken: "",
+      tokenSet: false,
+      debug: false,
+      model: "",
+      toolApprovalMode: "ask",
+      workspaceRoot: "",
+      access: { enabled: true, allowAll: true, pairingEnabled: false, users: [], approvers: [], admins: [], groups: [] },
+    },
       dingtalk: {
         enabled: false,
         clientId: "",
@@ -4791,6 +4805,12 @@ function makeMockApp(): AppBindings {
           const diag = await this.DiagnoseBotConnection(id);
           if (target?.trim()) return { ...diag, message: `Mock test sent to ${target.trim()}`, messageId: "mock-message-id" };
           return diag;
+        },
+        async SetBotTelegramToken(_token: string) { return; },
+        async ClearBotTelegramToken() { return; },
+        async TestTelegramBot() {
+          const occurredAt = new Date().toISOString();
+          return { id: "telegram", label: "Telegram", status: "ok", message: "Mock telegram test sent", messageId: "mock-telegram-id", phase: "send", code: "telegram_test_send_ok", reportKind: "", reportDetail: "", occurredAt };
         },
         async TestDingtalkBot() {
           const occurredAt = new Date().toISOString();

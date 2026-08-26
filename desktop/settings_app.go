@@ -274,6 +274,13 @@ type WeixinBotView struct {
 	APIBase   string `json:"apiBase"`
 }
 
+type TelegramBotView struct {
+	Enabled  bool   `json:"enabled"`
+	BotToken string `json:"botToken"`
+	TokenSet bool   `json:"tokenSet"`
+	Debug    bool   `json:"debug"`
+}
+
 type DingtalkBotView struct {
 	Enabled          bool          `json:"enabled"`
 	ClientID         string        `json:"clientId"`

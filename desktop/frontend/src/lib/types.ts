@@ -1922,9 +1922,13 @@ export interface BotAllowlistView {
   feishuGroups: string[];
   weixinGroups: string[];
   dingtalkUsers: string[];
+  telegramUsers: string[];
   dingtalkApprovers: string[];
+  telegramApprovers: string[];
   dingtalkAdmins: string[];
+  telegramAdmins: string[];
   dingtalkGroups: string[];
+  telegramGroups: string[];
 }
 
 export interface BotAccessView {
@@ -1942,6 +1946,7 @@ export interface BotSelfUserIDsView {
   feishu: string[];
   weixin: string[];
   dingtalk: string[];
+  telegram: string[];
 }
 
 export interface BotPairingView {
@@ -2000,6 +2005,17 @@ export interface WeixinBotView {
   apiBase: string;
 }
 
+export interface TelegramBotView {
+  enabled: boolean;
+  botToken: string;
+  tokenSet: boolean;
+  debug: boolean;
+  model: string;
+  toolApprovalMode: ToolApprovalMode | "" | string;
+  workspaceRoot: string;
+  access: BotAccessView;
+}
+
 export interface DingtalkBotView {
   enabled: boolean;
   clientId: string;
@@ -2035,8 +2051,8 @@ export interface BotConnectionSessionMappingView {
 
 export interface BotConnectionView {
   id: string;
-  provider: "qq" | "feishu" | "weixin" | string;
-  domain: "qq" | "feishu" | "lark" | "weixin" | string;
+  provider: "qq" | "feishu" | "weixin" | "telegram" | string;
+  domain: "qq" | "feishu" | "lark" | "weixin" | "telegram" | string;
   label: string;
   enabled: boolean;
   status: "disconnected" | "pending" | "connected" | "error" | string;
@@ -2070,6 +2086,7 @@ export interface BotSettingsView {
   feishu: FeishuBotView;
   weixin: WeixinBotView;
   dingtalk: DingtalkBotView;
+  telegram: TelegramBotView;
   connections: BotConnectionView[];
 }
 
