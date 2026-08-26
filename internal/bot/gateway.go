@@ -355,7 +355,7 @@ func normalizeAdapterBindings(adapters []AdapterBinding) []AdapterBinding {
 }
 
 func (gw *BotGateway) buildAllowlist() {
-	for _, plat := range []Platform{PlatformQQ, PlatformFeishu, PlatformWeixin, PlatformDingtalk} {
+	for _, plat := range []Platform{PlatformQQ, PlatformFeishu, PlatformWeixin, PlatformDingtalk, PlatformTelegram} {
 		gw.allowlist[plat] = make(map[string]bool)
 		if !gw.cfg.Allowlist.Enabled {
 			continue
@@ -380,7 +380,7 @@ func addAllowlistUsers(dst map[string]bool, users []string) {
 }
 
 func (gw *BotGateway) buildSelfUserIDs() {
-	for _, plat := range []Platform{PlatformQQ, PlatformFeishu, PlatformWeixin, PlatformDingtalk} {
+	for _, plat := range []Platform{PlatformQQ, PlatformFeishu, PlatformWeixin, PlatformDingtalk, PlatformTelegram} {
 		gw.selfUserIDs[plat] = stringSet(gw.cfg.SelfUserIDs[plat])
 	}
 }

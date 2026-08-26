@@ -13,6 +13,7 @@ import (
 	"reasonix/internal/bot/feishu"
 	"reasonix/internal/bot/qq"
 	"reasonix/internal/bot/weixin"
+	"reasonix/internal/bot/telegram"
 	"reasonix/internal/config"
 )
 
@@ -103,6 +104,10 @@ func PlatformConfigured(cfg *config.Config, platform bot.Platform) bool {
 		}
 	case bot.PlatformDingtalk:
 		if cfg.Bot.Dingtalk.Enabled {
+			return true
+		}
+	case bot.PlatformTelegram:
+		if cfg.Bot.Telegram.Enabled {
 			return true
 		}
 	}
@@ -410,6 +415,9 @@ func AdapterBindings(cfg *config.Config, enabled map[bot.Platform]bool, feishuDo
 	}
 	if enabled[bot.PlatformDingtalk] && !hasConnection[bot.PlatformDingtalk] {
 		bindings = append(bindings, bot.AdapterBinding{ID: string(bot.PlatformDingtalk), Domain: "dingtalk", Platform: bot.PlatformDingtalk, Adapter: dingtalk.New(cfg.Bot.Dingtalk, logger)})
+	}
+	if enabled[bot.PlatformTelegram] && !hasConnection[bot.PlatformTelegram] {
+		bindings = append(bindings, bot.AdapterBinding{ID: string(bot.PlatformTelegram), Domain: "telegram", Platform: bot.PlatformTelegram, Adapter: telegram.New(cfg.Bot.Telegram, logger)})
 	}
 	return bindings
 }
@@ -783,7 +791,9 @@ func rememberAllowlist(allowlist *config.BotAllowlist, platform bot.Platform, us
 			allowlist.WeixinUsers, changed = appendUniqueString(allowlist.WeixinUsers, userID)
 		case bot.PlatformDingtalk:
 			allowlist.DingtalkUsers, changed = appendUniqueString(allowlist.DingtalkUsers, userID)
-		}
+		case bot.PlatformTelegram:
+			allowlist.TelegramUsers, changed = appendUniqueString(allowlist.TelegramUsers, userID)
+	}
 	}
 	if !chatUsesGroupAllowlist(chatType) {
 		return changed
@@ -802,6 +812,8 @@ func rememberAllowlist(allowlist *config.BotAllowlist, platform bot.Platform, us
 		allowlist.WeixinGroups, groupChanged = appendUniqueString(allowlist.WeixinGroups, groupID)
 	case bot.PlatformDingtalk:
 		allowlist.DingtalkGroups, groupChanged = appendUniqueString(allowlist.DingtalkGroups, groupID)
+	case bot.PlatformTelegram:
+		allowlist.TelegramGroups, groupChanged = appendUniqueString(allowlist.TelegramGroups, groupID)
 	}
 	return changed || groupChanged
 }

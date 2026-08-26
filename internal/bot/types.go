@@ -16,6 +16,7 @@ const (
 	PlatformFeishu   Platform = "feishu"
 	PlatformWeixin   Platform = "weixin"
 	PlatformDingtalk Platform = "dingtalk"
+	PlatformTelegram Platform = "telegram"
 )
 
 // ChatType 标识会话类型。

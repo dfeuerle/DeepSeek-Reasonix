@@ -3699,6 +3699,46 @@ function BotsSection({ s, busy, apply, initialFocus }: BotsSectionProps) {
             </div>
           </div>
         </div>
+      ) : isTelegramInstallTarget ? (
+        <div className="bot-connect-panel bot-connect-panel--manual bot-connect-panel--telegram">
+          <div className="bot-connect-panel__body">
+            <div className="bot-qq-simple__head">
+              <div>
+                <strong>{selectedInstallLabel}</strong>
+                <p>Enter your Telegram Bot Token from @BotFather</p>
+              </div>
+              <span className={`bot-qq-simple__status${telegramConfigured ? " bot-qq-simple__status--ready" : ""}`}>
+                {telegramConfigured ? <CheckCircle2 aria-hidden="true" /> : <KeyRound aria-hidden="true" />}
+                {draft.telegram.tokenSet ? t("settings.botSecretSet") : t("settings.botSecretMissing")}
+              </span>
+            </div>
+            <div className="bot-manual-form bot-manual-form--telegram">
+              <div className="bot-card-field">
+                <span>Bot Token</span>
+                <div>
+                  <input
+                    className="mem-input"
+                    type="password"
+                    aria-label="Telegram Bot Token"
+                    value={telegramTokenValue}
+                    disabled={busy}
+                    placeholder="8511327769:AAE..."
+                    spellCheck={false}
+                    onChange={(e) => {
+                      setTelegramTokenValue(e.target.value);
+                      telegramTokenTextRef.current = e.target.value;
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="bot-qq-simple__actions">
+                <button type="button" className="btn btn--primary btn--small" disabled={busy || !telegramTokenTextRef.current.trim()} onClick={() => void saveTelegramAndEnable()}>
+                  {t("settings.botSaveAndEnable")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="bot-connect-panel bot-connect-panel--phone">
           <div className="bot-connect-panel__qr">
