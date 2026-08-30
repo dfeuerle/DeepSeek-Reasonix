@@ -312,6 +312,7 @@ type BotSettingsView struct {
 	QQ                 QQBotView           `json:"qq"`
 	Feishu             FeishuBotView       `json:"feishu"`
 	Weixin             WeixinBotView       `json:"weixin"`
+	Telegram           TelegramBotView     `json:"telegram"`
 	Dingtalk           DingtalkBotView     `json:"dingtalk"`
 	Connections        []BotConnectionView `json:"connections"`
 }
@@ -1203,6 +1204,12 @@ func botSettingsView(b config.BotConfig) BotSettingsView {
 			TokenSet:  strings.TrimSpace(b.Weixin.TokenEnv) != "" && os.Getenv(b.Weixin.TokenEnv) != "",
 			APIBase:   b.Weixin.APIBase,
 		},
+		Telegram: TelegramBotView{
+			Enabled:  b.Telegram.Enabled,
+			BotToken: b.Telegram.BotToken,
+			TokenSet: b.Telegram.TokenSet,
+			Debug:    b.Telegram.Debug,
+		},
 		Dingtalk: DingtalkBotView{
 			Enabled:          b.Dingtalk.Enabled,
 			ClientID:         b.Dingtalk.ClientID,
@@ -1770,7 +1777,8 @@ func desktopBotConfigConfigured(bot config.BotConfig) bool {
 		bot.Weixin.APIBase != defaults.Weixin.APIBase {
 		return true
 	}
-	if bot.Dingtalk.Enabled ||
+	if bot.Telegram.Enabled || bot.Telegram.TokenSet ||
+		bot.Dingtalk.Enabled ||
 		strings.TrimSpace(bot.Dingtalk.ClientID) != "" ||
 		strings.TrimSpace(bot.Dingtalk.ClientSecret) != "" ||
 		strings.TrimSpace(bot.Dingtalk.ClientIDEnv) != "" ||

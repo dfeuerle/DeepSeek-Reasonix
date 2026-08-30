@@ -397,7 +397,15 @@ func telegramRuntimeConnectionID(connections []config.BotConnectionConfig) strin
 
 // SetBotTelegramToken stores the Telegram bot token as a secret via the existing secret mechanism.
 func (a *App) SetBotTelegramToken(token string) (string, error) {
-	return a.SaveProviderKey("TELEGRAM_BOT_TOKEN", token)
+	err := a.applyConfigOnly(func(cfg *config.Config) error {
+		cfg.Bot.Telegram.BotToken = token
+		cfg.Bot.Telegram.TokenSet = true
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return "", nil
 }
 
 // ClearBotTelegramToken removes the stored Telegram bot token.

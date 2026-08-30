@@ -668,7 +668,8 @@ function settingsModelMeta(s: SettingsView, t: ReturnType<typeof useT>): string 
 
 function botSettingsMeta(bot: BotSettingsView, t: ReturnType<typeof useT>): string {
   const normalized = normalizeBotSettings(bot);
-  const connections = normalized.connections.length + (qqBotAdded(normalized.qq) ? 1 : 0);
+  const telegramAdded = normalized.telegram.enabled || normalized.telegram.tokenSet || normalized.telegram.botToken.trim();
+  const connections = normalized.connections.length + (qqBotAdded(normalized.qq) ? 1 : 0) + (telegramAdded ? 1 : 0);
   if (connections === 0) return t("settings.botNoConnections");
   if (!normalized.enabled) return t("settings.botDisabledWithConnections", { n: connections });
   return t("settings.botConnectionCount", { n: connections });

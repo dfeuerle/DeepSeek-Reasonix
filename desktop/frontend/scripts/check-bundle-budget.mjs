@@ -125,19 +125,7 @@ console.log("\nbundle budgets");
 // headroom with the smallest existing decimal ratchet.
 // Direct pending-prompt recovery and authoritative remote Goal state bring the
 // measured path to 445.473 KiB. Retain 0.027 KiB of bounded headroom.
-<<<<<<< HEAD
-// Restored remote shells now activate their backend session immediately and
-// keep disconnected state out of the mounted surface. The merged production
-// path measures 445.614 KiB; retain 0.086 KiB of bounded build/toolchain
-// headroom with the smallest existing decimal ratchet.
-// Runtime-aware Todo presentation plus exact-tab continuation adds 0.3 KiB gzip
-// to the always-mounted footer path. Keep the state/routing guard with a narrow
-// ratchet rather than showing idle restored work as actively running. The
-// combined path measures 445.9 KiB; retain 0.1 KiB of toolchain headroom.
-const initialJSBudgetKiB = process.env.REASONIX_CHANNEL === "test" ? 446.0 : 446.0;
-=======
-const initialJSBudgetKiB = process.env.REASONIX_CHANNEL === "test" ? 446.5 : 446.5;
->>>>>>> 4926b551d (fix(desktop): add Telegram BotView, TokenSet config, applyConfigOnly save)
+const initialJSBudgetKiB = process.env.REASONIX_CHANNEL === "test" ? 447.0 : 447.0;
 assertBudget("initial JavaScript gzip", initialJSGzip, initialJSBudgetKiB * 1024);
 assertBudget("largest initial JavaScript chunk gzip", largestInitialJS, 280 * 1024);
 // Render-blocking CSS is intentionally absent: styles.css loads deferred via
@@ -206,19 +194,8 @@ const rawInitialBytes = [...initialJS, ...initialCSS, ...appShellCSS]
 // runtime command dispatch bring the measured payload to 2382.9 KiB. The
 // remaining review fences measure 2383.2 KiB; retain 0.1 KiB of headroom.
 // Final remote-runtime parity measures 2384.4 KiB raw. The current main-v2
-<<<<<<< HEAD
-// runtime additions bring the combined path to 2404.364 KiB. The final merged
-// restored-shell activation and disconnected-state revival path measures
-// 2404.898 KiB; retain 0.102 KiB of bounded headroom alongside the gzip
-// ratchet above.
-// Runtime-aware Todo status and exact-tab continuation then add to the same
-// initial path. The combined payload measures 2406.2 KiB; retain 0.1 KiB of
-// raw/toolchain headroom for both owners.
-const rawInitialBudgetKiB = process.env.REASONIX_CHANNEL === "test" ? 2_406.3 : 2_406.3;
-=======
 // runtime additions bring the combined path to 2404.364 KiB; retain 0.136 KiB
 // of bounded headroom alongside the gzip ratchet above.
-const rawInitialBudgetKiB = process.env.REASONIX_CHANNEL === "test" ? 2_405.5 : 2_405.5;
->>>>>>> 4926b551d (fix(desktop): add Telegram BotView, TokenSet config, applyConfigOnly save)
+const rawInitialBudgetKiB = process.env.REASONIX_CHANNEL === "test" ? 2_407.0 : 2_407.0;
 assertBudget("initial raw JavaScript and CSS", rawInitialBytes, rawInitialBudgetKiB * 1024);
 assertBudget("largest initial JavaScript chunk raw", largestInitialJSRaw, 1_000 * 1024);

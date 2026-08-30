@@ -128,6 +128,18 @@ option numbers, or `/answer <id> <answer>`.
 4. Wait until the page shows the connection as connected.
 5. Send the QQ bot a message.
 
+### Telegram
+
+1. In **Settings -> Bots**, find **Telegram Bot** in the bot connection list.
+2. Enter your bot token from [@BotFather](https://t.me/BotFather).
+3. Click **Connect** to save the token and enable the bot.
+4. Wait until the page shows the connection as connected.
+5. Send the bot a message.
+
+Telegram connects using only a bot token — no QR code scanning or complex
+OAuth flow. The bot token is saved in `~/.config/reasonix/config.toml` under
+the `[bot.telegram]` section.
+
 QQ Bot uses the official QQ Bot platform API. It supports inline keyboard
 buttons for approvals. Ask questions are sent as text; reply with normal text,
 option numbers, or `/answer <id> <answer>`. When a button expires or the
@@ -471,6 +483,7 @@ You may need to bind again if:
 | --- | --- |
 | QR code says the link expired | Generate a new QR code in Settings; QR codes expire (Feishu, Lark, WeChat only — QQ uses manual setup and has no QR code). |
 | Connected but no reply | Make sure the desktop bot runtime or `reasonix bot start` process is running, the bot connection is enabled, and the sender ID is allowlisted, paired, or access is open. |
+| Telegram token not persisted after restart | Check `~/.config/reasonix/config.toml` for a `[bot.telegram]` section. If missing after saving, the TOML renderer may lack a `[bot.telegram]` block — see `internal/config/render.go`. This has been a recurring gap when adding new bot platforms; always verify the renderer when adding bot platform support. |
 | Feishu or Lark button action fails | Send the text command from the card, such as `/approve <id>` or `/deny <id>`. |
 | QQ button action fails | Same as Feishu/Lark — send the text command from the card, such as `/approve <id>` or `/deny <id>`. |
 | WeChat reply `1` does nothing | Numeric shortcuts only work when an approval or Ask is pending; use the full command if needed. |

@@ -673,6 +673,13 @@ func RenderTOMLForScope(c *Config, scope RenderScope) string {
 		if len(c.Bot.Dingtalk.SessionMappings) > 0 {
 			fmt.Fprintf(&b, "session_mappings = %s\n", renderBotSessionMappings(c.Bot.Dingtalk.SessionMappings))
 		}
+		b.WriteString("\n[bot.telegram]\n")
+		fmt.Fprintf(&b, "enabled = %v\n", c.Bot.Telegram.Enabled)
+		if strings.TrimSpace(c.Bot.Telegram.BotToken) != "" {
+			fmt.Fprintf(&b, "bot_token = %q\n", strings.TrimSpace(c.Bot.Telegram.BotToken))
+		}
+		fmt.Fprintf(&b, "token_set = %v\n", c.Bot.Telegram.TokenSet)
+		fmt.Fprintf(&b, "debug = %v\n", c.Bot.Telegram.Debug)
 		for _, conn := range c.Bot.Connections {
 			b.WriteString("\n[[bot.connections]]\n")
 			fmt.Fprintf(&b, "id = %q\n", conn.ID)
